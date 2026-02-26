@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>参加確認 集約表</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system,'Hiragino Sans','Meiryo',sans-serif; background:#f0f2f5; padding:10px; color:#333; font-size:14px; }
+  h1 { text-align:center; font-size:1.05rem; margin-bottom:8px; }
+  .event-bar { display:flex; align-items:center; gap:0; margin-bottom:8px; overflow-x:auto; background:#fff; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.08); }
+  .ev-tab { padding:7px 14px; font-size:0.82rem; cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent; color:#64748b; }
+  .ev-tab:hover { color:#333; }
+  .ev-tab.active { color:#2563eb; border-bottom-color:#2563eb; font-weight:600; }
+  .ev-add { padding:7px 12px; font-size:0.9rem; cursor:pointer; color:#2563eb; font-weight:600; }
+  .mode-bar { display:flex; gap:0; margin-bottom:8px; background:#fff; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.08); }
+  .mode-tab { padding:6px 14px; font-size:0.8rem; cursor:pointer; border-bottom:2px solid transparent; color:#64748b; }
+  .mode-tab.active { color:#059669; border-bottom-color:#059669; font-weight:600; }
+  .toolbar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+  .toolbar button { padding:5px 12px; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:4px; background:#fff; cursor:pointer; color:#334155; }
+  .toolbar button:hover { background:#f1f5f9; }
+  .toolbar button.primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+  .toolbar button.green { background:#059669; color:#fff; border-color:#059669; }
+  .toolbar button.amber { background:#d97706; color:#fff; border-color:#d97706; }
+  .toolbar button.danger { background:#dc2626; color:#fff; border-color:#dc2626; }
+  .summary { padding:6px 10px; font-size:0.82rem; background:#fff; border-radius:6px; margin-bottom:8px; box-shadow:0 1px 2px rgba(0,0,0,0.08); }
+  .s-y { color:#059669; font-weight:600; } .s-n { color:#dc2626; font-weight:600; }
+  .s-p { color:#d97706; font-weight:600; } .s-u { color:#64748b; font-weight:600; }
+  .sec-hdr { display:flex; justify-content:space-between; align-items:center; padding:7px 10px; background:#1e293b; color:#fff; font-size:0.85rem; font-weight:600; border-radius:6px 6px 0 0; margin-top:10px; }
+  .sec-hdr-btns button { padding:2px 8px; font-size:0.7rem; border:1px solid rgba(255,255,255,0.3); border-radius:3px; background:transparent; color:#fff; cursor:pointer; margin-left:4px; }
+  .sec-memo { background:#fff; padding:4px 8px; }
+  .sec-memo textarea { width:100%; border:1px solid #e2e8f0; border-radius:3px; font-size:0.8rem; resize:none; overflow:hidden; padding:4px; }
+  table { width:100%; border-collapse:collapse; background:#fff; }
+  th,td { padding:5px 6px; border:1px solid #e2e8f0; font-size:0.78rem; text-align:left; }
+  th { background:#f8fafc; font-weight:600; position:sticky; top:0; }
+  th.c, td.c { text-align:center; width:50px; }
+  td select { width:100%; font-size:0.78rem; padding:2px; border:1px solid #e2e8f0; border-radius:3px; }
+  td select.y { background:#d1fae5; } td select.n { background:#fee2e2; } td select.p { background:#fef3c7; }
+  .note-area { width:100%; font-size:0.78rem; border:1px solid #e2e8f0; border-radius:3px; resize:none; overflow:hidden; padding:3px; min-height:26px; }
+  .row-actions { width:50px; text-align:center; white-space:nowrap; }
+  .row-actions button { padding:1px 5px; font-size:0.7rem; border:1px solid #cbd5e1; border-radius:3px; background:#fff; cursor:pointer; margin:1px; }
+  .add-member { display:flex; gap:6px; padding:6px 8px; background:#fff; border-radius:0 0 6px 6px; border-top:1px solid #e2e8f0; }
+  .add-member input { flex:1; padding:5px 8px; font-size:0.8rem; border:1px solid #cbd5e1; border-radius:4px; }
+  .add-member button { padding:5px 14px; font-size:0.8rem; border:1px solid #2563eb; border-radius:4px; background:#2563eb; color:#fff; cursor:pointer; }
+  .text-output { background:#fff; padding:12px; border-radius:6px; white-space:pre-wrap; font-size:0.82rem; line-height:1.6; font-family:'Hiragino Sans',monospace; }
+  .modal-bg { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100; justify-content:center; align-items:center; }
+  .modal-bg.show { display:flex; }
+  .modal { background:#fff; border-radius:8px; padding:16px; width:90%; max-width:400px; max-height:85vh; overflow-y:auto; }
+  .modal h3 { font-size:0.95rem; margin-bottom:10px; }
+  .modal textarea, .modal input[type="text"] { width:100%; padding:8px; font-size:0.85rem; border:1px solid #cbd5e1; border-radius:4px; margin-bottom:8px; resize:vertical; }
+  .modal-btns { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+  .modal-btns button { padding:6px 16px; font-size:0.82rem; border-radius:4px; border:1px solid #cbd5e1; cursor:pointer; }
+  .modal-btns .ok { background:#2563eb; color:#fff; border-color:#2563eb; }
+  .field-config { background:#fff; border-radius:6px; padding:8px 10px; margin-bottom:8px; box-shadow:0 1px 2px rgba(0,0,0,0.08); }
+  .field-config summary { font-size:0.82rem; font-weight:600; cursor:pointer; }
+  .field-row { display:flex; gap:6px; align-items:center; margin-top:6px; }
+  .field-row input,.field-row select { font-size:0.78rem; padding:4px 6px; border:1px solid #cbd5e1; border-radius:3px; }
+  .field-row input { flex:1; }
+  .field-row button { font-size:0.75rem; padding:2px 8px; border:1px solid #cbd5e1; border-radius:3px; background:#fff; cursor:pointer; }
+  .field-add { font-size:0.78rem; margin-top:6px; padding:4px 10px; border:1px dashed #cbd5e1; border-radius:3px; background:#f8fafc; cursor:pointer; display:block; }
+  .wp-selector { background:#fff; border-radius:6px; padding:8px 10px; margin-bottom:8px; box-shadow:0 1px 2px rgba(0,0,0,0.08); }
+  .wp-selector summary { font-size:0.82rem; font-weight:600; cursor:pointer; }
+  .imp-tabs { display:flex; gap:0; margin-bottom:8px; }
+  .imp-tabs button { flex:1; padding:6px; font-size:0.78rem; border:1px solid #cbd5e1; cursor:pointer; }
+  .imp-tabs button:first-child { border-radius:4px 0 0 4px; }
+  .imp-tabs button:last-child { border-radius:0 4px 4px 0; }
+  .conn-bar { display:flex; align-items:center; gap:8px; padding:4px 10px; margin-bottom:8px; background:#fff; border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.08); font-size:0.75rem; }
+  .conn-dot { width:8px; height:8px; border-radius:50%; }
+  .conn-dot.online { background:#059669; }
+  .conn-dot.offline { background:#dc2626; }
+  .conn-dot.loading { background:#d97706; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .conn-bar .device-name { color:#64748b; margin-left:auto; }
+  .conn-bar button { padding:2px 10px; font-size:0.72rem; border:1px solid #cbd5e1; border-radius:3px; background:#fff; cursor:pointer; }
+  .login-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:60vh; gap:16px; }
+  .login-screen h2 { font-size:1.1rem; }
+  .login-screen button { padding:10px 24px; font-size:0.9rem; border:1px solid #2563eb; border-radius:6px; background:#2563eb; color:#fff; cursor:pointer; }
+  .saving-indicator { position:fixed; top:10px; right:10px; padding:4px 12px; background:#d97706; color:#fff; border-radius:4px; font-size:0.75rem; z-index:200; display:none; }
+  .saving-indicator.show { display:block; }
+</style>
+</head>
+<body>
+<div class="saving-indicator" id="savingIndicator">保存中...</div>
+
+<div id="loginScreen" class="login-screen" style="display:none;">
+  <h2>参加確認 集約表</h2>
+  <p style="font-size:0.85rem;color:#64748b;">Googleアカウントでログインしてください</p>
+  <button onclick="doLogin()">Googleでログイン</button>
+</div>
+
+<div id="appScreen" style="display:none;">
+<h1>参加確認 集約表</h1>
+<div class="conn-bar" id="connBar">
+  <div class="conn-dot loading" id="connDot"></div>
+  <span id="connStatus">接続中...</span>
+  <button onclick="doLogout()">ログアウト</button>
+  <span class="device-name" id="deviceLabel"></span>
+</div>
+<div class="event-bar" id="eventBar"></div>
+<div class="mode-bar" id="modeBar">
+  <div class="mode-tab active" data-mode="edit">入力</div>
+  <div class="mode-tab" data-mode="text-all">集約（全体）</div>
+  <div class="mode-tab" data-mode="text-yes">集約（参加のみ）</div>
+</div>
+<div class="toolbar" id="toolbar"></div>
+<div class="summary" id="summary"></div>
+<details class="field-config" id="fieldConfig">
+  <summary>項目設定</summary>
+  <div id="fieldList"></div>
+</details>
+<details class="wp-selector" id="wpSelector">
+  <summary>対象職場</summary>
+  <div id="wpCheckList" style="margin-top:6px;"></div>
+</details>
+<div id="main"></div>
+
+<div class="modal-bg" id="moveModal">
+  <div class="modal">
+    <h3 id="moveName">異動</h3>
+    <select id="moveDest" style="width:100%;padding:8px;font-size:0.85rem;border:1px solid #cbd5e1;border-radius:4px;margin-bottom:8px;"></select>
+    <div class="modal-btns"><button onclick="closeMoveModal()">キャンセル</button><button class="ok" onclick="execMove()">異動</button></div>
+  </div>
+</div>
+<div class="modal-bg" id="wpAddModal">
+  <div class="modal">
+    <h3>職場追加</h3>
+    <input type="text" id="wpAddName" placeholder="職場名">
+    <div class="modal-btns"><button onclick="closeWpAdd()">キャンセル</button><button class="ok" onclick="execWpAdd()">追加</button></div>
+  </div>
+</div>
+<div class="modal-bg" id="importModal">
+  <div class="modal">
+    <h3>インポート</h3>
+    <div class="imp-tabs">
+      <button id="impTabList" onclick="setImpTab('list')">名簿（CSV/TSV）</button>
+      <button id="impTabData" onclick="setImpTab('data')">回答データ(@区切り)</button>
+    </div>
+    <div id="impListArea">
+      <p style="font-size:0.75rem;color:#64748b;margin-bottom:6px;">形式：職場名,氏名（1行1人、タブ区切りも可）</p>
+      <textarea id="csvInput" rows="8" placeholder="東京運輸区,佐藤太郎&#10;東京運輸区,鈴木花子&#10;上野運輸区,田中一郎"></textarea>
+    </div>
+    <div id="impDataArea" style="display:none;">
+      <p style="font-size:0.75rem;color:#64748b;margin-bottom:6px;">エクスポート(@区切り)で出力した形式をそのまま貼り付け</p>
+      <textarea id="dataInput" rows="8" placeholder="職場名@氏名@声かけ@参加可否@備考&#10;東京運輸区@佐藤太郎@済@参加@"></textarea>
+    </div>
+    <div class="modal-btns"><button onclick="closeImport()">キャンセル</button><button class="ok" onclick="doImport()">読み込み</button></div>
+  </div>
+</div>
+<div class="modal-bg" id="deviceModal">
+  <div class="modal">
+    <h3>この端末の名前を設定</h3>
+    <p style="font-size:0.78rem;color:#64748b;margin-bottom:8px;">操作ログに記録されます（例：事務所iPad、自分のiPhone）</p>
+    <input type="text" id="deviceNameInput" placeholder="端末名を入力">
+    <div class="modal-btns"><button class="ok" onclick="saveDeviceName()">決定</button></div>
+  </div>
+</div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ============ Firebase ============
+firebase.initializeApp({
+  apiKey: "AIzaSyAUTj0VWrbOJL51ww5vra-jrT6khXTicJ0",
+  authDomain: "eucallout.firebaseapp.com",
+  projectId: "eucallout",
+  storageBucket: "eucallout.firebasestorage.app",
+  messagingSenderId: "423750324732",
+  appId: "1:423750324732:web:b4f9d212526d7a6158e279"
+});
+const auth = firebase.auth();
+const db = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch(e => console.warn('Persistence:', e.code));
+
+// ============ 端末識別 ============
+let deviceId = localStorage.getItem('eu_did');
+let deviceName = localStorage.getItem('eu_dname');
+if (!deviceId) { deviceId = 'dev_' + Math.random().toString(36).substr(2, 8); localStorage.setItem('eu_did', deviceId); }
+
+function saveDeviceName() {
+  const n = document.getElementById('deviceNameInput').value.trim();
+  if (!n) { alert('端末名を入力してください'); return; }
+  deviceName = n;
+  localStorage.setItem('eu_dname', deviceName);
+  document.getElementById('deviceModal').classList.remove('show');
+  document.getElementById('deviceLabel').textContent = deviceName;
+  writeLog('端末登録: ' + deviceName);
+}
+
+// ============ 認証 ============
+function doLogin() {
+  const p = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(p).catch(err => {
+    if (err.code === 'auth/popup-blocked') auth.signInWithRedirect(p);
+    else alert('ログインエラー: ' + err.message);
+  });
+}
+function doLogout() { if (confirm('ログアウトしますか？')) auth.signOut(); }
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = '';
+    if (!deviceName) {
+      document.getElementById('deviceModal').classList.add('show');
+      document.getElementById('deviceNameInput').focus();
+    } else {
+      document.getElementById('deviceLabel').textContent = deviceName;
+    }
+    startListening();
+  } else {
+    document.getElementById('loginScreen').style.display = '';
+    document.getElementById('appScreen').style.display = 'none';
+    stopListening();
+  }
+});
+
+// ============ ログ ============
+function writeLog(action) {
+  const u = auth.currentUser;
+  db.collection('logs').add({
+    deviceId, deviceName: deviceName || '(未設定)',
+    userEmail: u ? u.email : '', action,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(() => {});
+}
+
+// ============ データ ============
+let events = {};
+let currentEvent = '';
+let currentMode = 'edit';
+let impTab = 'list';
+let unsubscribe = null;
+let saveTimer = null;
+let suppressRemote = false;
+
+function defaultFields() {
+  return [
+    { id:'f1', label:'声かけ', type:'check' },
+    { id:'f2', label:'参加可否', type:'select', options:['参加','不参加','未定'] }
+  ];
+}
+function newMemberValues(fields) {
+  const v = {};
+  for (const f of fields) v[f.id] = f.type === 'check' ? false : '';
+  return v;
+}
+
+// ============ Firestore同期 ============
+function startListening() {
+  if (unsubscribe) unsubscribe();
+  const dot = document.getElementById('connDot');
+  const st = document.getElementById('connStatus');
+  dot.className = 'conn-dot loading'; st.textContent = '接続中...';
+
+  unsubscribe = db.collection('events').onSnapshot(snap => {
+    dot.className = 'conn-dot online'; st.textContent = 'オンライン';
+    if (suppressRemote) return;
+    const ne = {};
+    snap.forEach(doc => { ne[doc.id] = doc.data(); });
+    events = ne;
+    const names = Object.keys(events);
+    if (!currentEvent || !events[currentEvent]) currentEvent = names[0] || '';
+    renderTabs(); renderAll();
+  }, err => {
+    dot.className = 'conn-dot offline'; st.textContent = 'オフライン';
+    console.error('Listen error:', err);
+  });
+}
+function stopListening() { if (unsubscribe) { unsubscribe(); unsubscribe = null; } }
+
+// ============ 保存 ============
+function scheduleSave(evName) {
+  if (saveTimer) clearTimeout(saveTimer);
+  showSaving(true);
+  saveTimer = setTimeout(() => doSave(evName || currentEvent), 300);
+}
+async function doSave(evName) {
+  if (!auth.currentUser || !events[evName]) return;
+  suppressRemote = true;
+  try { await db.collection('events').doc(evName).set(events[evName]); }
+  catch (err) { console.error('Save error:', err); alert('保存失敗: ' + err.message); }
+  finally { showSaving(false); setTimeout(() => { suppressRemote = false; }, 500); }
+}
+function showSaving(on) { document.getElementById('savingIndicator').classList.toggle('show', on); }
+async function deleteEventFS(name) { try { await db.collection('events').doc(name).delete(); } catch(e) { console.error(e); } }
+async function renameEventFS(oldN, newN, data) {
+  suppressRemote = true;
+  try { await db.collection('events').doc(newN).set(data); await db.collection('events').doc(oldN).delete(); }
+  catch(e) { console.error(e); }
+  finally { setTimeout(() => { suppressRemote = false; }, 500); }
+}
+
+// ============ ユーティリティ ============
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function ev(){ return events[currentEvent]; }
+function allMembers(){ if(!ev())return[]; return Object.entries(ev().workplaces||{}).filter(([wp])=>isWpActive(wp)).flatMap(([,w])=>w.members); }
+function isWpActive(wp){ if(!ev())return false; const a=ev().activeWps; return !a||a.includes(wp); }
+let fieldIdCounter = 10;
+function nextFieldId(){ return 'f'+(++fieldIdCounter); }
+
+// ============ 行事タブ ============
+function renderTabs() {
+  const bar = document.getElementById('eventBar'); bar.innerHTML = '';
+  for (const name of Object.keys(events)) {
+    const tab = document.createElement('div');
+    tab.className = 'ev-tab' + (name===currentEvent?' active':'');
+    tab.textContent = name;
+    tab.onclick = () => { currentEvent=name; renderTabs(); renderAll(); };
+    bar.appendChild(tab);
+  }
+  const add = document.createElement('div');
+  add.className='ev-add'; add.textContent='\uff0b'; add.onclick=addEvent;
+  bar.appendChild(add);
+}
+function addEvent() {
+  const name=prompt('行事名を入力'); if(!name||!name.trim()) return;
+  if(events[name.trim()]){alert('同名の行事があります');return;}
+  let fields, workplaces={};
+  if(ev()){
+    fields=JSON.parse(JSON.stringify(ev().fields));
+    for(const[wp,wd]of Object.entries(ev().workplaces))
+      workplaces[wp]={memo:'',members:wd.members.map(m=>({name:m.name,values:newMemberValues(fields),note:''}))};
+  } else { fields=defaultFields(); }
+  events[name.trim()]={fields,workplaces,activeWps:null};
+  currentEvent=name.trim(); scheduleSave(name.trim());
+  writeLog('行事追加: '+name.trim()); renderTabs(); renderAll();
+}
+function renameEvent(){
+  const name=prompt('新しい行事名',currentEvent);
+  if(!name||!name.trim()||name.trim()===currentEvent)return;
+  if(events[name.trim()]){alert('同名の行事があります');return;}
+  const data=events[currentEvent]; events[name.trim()]=data; delete events[currentEvent];
+  renameEventFS(currentEvent,name.trim(),data);
+  writeLog('行事名変更: '+currentEvent+' → '+name.trim());
+  currentEvent=name.trim(); renderTabs();
+}
+function deleteEvent(){
+  if(Object.keys(events).length<=1){alert('最後の行事は削除できません');return;}
+  if(!confirm('「'+currentEvent+'」を削除しますか？'))return;
+  const d=currentEvent; delete events[d]; currentEvent=Object.keys(events)[0];
+  deleteEventFS(d); writeLog('行事削除: '+d); renderTabs(); renderAll();
+}
+
+// ============ モード ============
+document.getElementById('modeBar').addEventListener('click',e=>{
+  if(!e.target.dataset.mode)return;
+  currentMode=e.target.dataset.mode;
+  document.querySelectorAll('.mode-tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===currentMode));
+  renderAll();
+});
+
+// ============ 項目設定 ============
+function renderFieldConfig(){
+  if(!ev()){document.getElementById('fieldConfig').style.display='none';return;}
+  const list=document.getElementById('fieldList'), fields=ev().fields; let html='';
+  fields.forEach((f,i)=>{
+    html+='<div class="field-row"><input type="text" value="'+esc(f.label)+'" data-fi="'+i+'" data-ff="label" placeholder="項目名"><select data-fi="'+i+'" data-ff="type"><option value="check" '+(f.type==='check'?'selected':'')+'>チェック</option><option value="select" '+(f.type==='select'?'selected':'')+'>選択肢</option><option value="text" '+(f.type==='text'?'selected':'')+'>テキスト</option></select>';
+    if(f.type==='select') html+='<input type="text" value="'+esc((f.options||[]).join(','))+'" data-fi="'+i+'" data-ff="options" placeholder="選択肢(カンマ区切り)" style="flex:2;">';
+    html+='<button onclick="removeField('+i+')">✕</button></div>';
+  });
+  if(fields.length<3) html+='<button class="field-add" onclick="addField()">＋ 項目を追加</button>';
+  list.innerHTML=html;
+}
+document.getElementById('fieldConfig').addEventListener('change',e=>{
+  const d=e.target.dataset; if(d.fi===undefined)return;
+  const f=ev().fields[+d.fi];
+  if(d.ff==='label') f.label=e.target.value;
+  else if(d.ff==='type'){
+    f.type=e.target.value;
+    if(f.type==='select'&&!f.options) f.options=['参加','不参加','未定'];
+    for(const wp of Object.values(ev().workplaces)) for(const m of wp.members) m.values[f.id]=f.type==='check'?false:'';
+    renderFieldConfig();
+  } else if(d.ff==='options') f.options=e.target.value.split(',').map(s=>s.trim()).filter(Boolean);
+  scheduleSave(); renderMain();
+});
+function addField(){
+  if(ev().fields.length>=3)return;
+  const id=nextFieldId();
+  ev().fields.push({id,label:'新項目',type:'select',options:['参加','不参加','未定']});
+  for(const wp of Object.values(ev().workplaces)) for(const m of wp.members) m.values[id]='';
+  scheduleSave(); renderFieldConfig(); renderMain();
+}
+function removeField(i){
+  const f=ev().fields[i]; if(!confirm('項目「'+f.label+'」を削除しますか？'))return;
+  ev().fields.splice(i,1);
+  for(const wp of Object.values(ev().workplaces)) for(const m of wp.members) delete m.values[f.id];
+  scheduleSave(); renderFieldConfig(); renderMain();
+}
+
+// ============ ツールバー ============
+function renderToolbar(){
+  const tb=document.getElementById('toolbar');
+  if(!ev()){tb.innerHTML='';return;}
+  if(currentMode==='edit'){
+    tb.innerHTML='<button onclick="openImport()" class="primary">インポート</button><button onclick="exportCSV()">エクスポート(CSV)</button><button onclick="exportData()">エクスポート(@区切り)</button><button onclick="openWpAdd()" class="amber">職場追加</button><button onclick="renameEvent()">行事名変更</button><button onclick="deleteEvent()" class="danger">行事削除</button>';
+  } else {
+    tb.innerHTML='<button onclick="copyTextOutput()" class="green">テキストをコピー</button>';
+  }
+}
+
+// ============ サマリー ============
+function renderSummary(){
+  if(!ev()){document.getElementById('summary').innerHTML='＋ボタンで行事を追加してください';return;}
+  const all=allMembers(), t=all.length;
+  const selFields=ev().fields.filter(f=>f.type==='select');
+  if(!selFields.length){document.getElementById('summary').innerHTML='全体 <b>'+t+'</b>名';return;}
+  const sf=selFields[0], counts={};
+  (sf.options||[]).forEach(o=>counts[o]=0); counts['未回答']=0;
+  for(const m of all){const v=m.values[sf.id]||''; if(v&&counts[v]!==undefined)counts[v]++;else counts['未回答']++;}
+  const colors=['s-y','s-n','s-p','s-u'];
+  let html='全体 <b>'+t+'</b>名　', ci=0;
+  for(const[k,v]of Object.entries(counts)){html+='<span class="'+colors[ci%colors.length]+'">'+k+' '+v+'</span>　';ci++;}
+  document.getElementById('summary').innerHTML=html;
+}
+
+// ============ メイン描画 ============
+function renderMain(){
+  if(!ev()){document.getElementById('main').innerHTML='<div style="text-align:center;padding:40px;color:#64748b;">＋ボタンで行事を追加</div>';return;}
+  if(currentMode==='edit') renderEditMode();
+  else if(currentMode==='text-all') renderTextMode('all');
+  else renderTextMode('yes');
+}
+
+function renderEditMode(){
+  const container=document.getElementById('main'), fields=ev().fields; container.innerHTML='';
+  document.getElementById('fieldConfig').style.display='';
+  for(const[wp,wpData]of Object.entries(ev().workplaces)){
+    if(!isWpActive(wp)) continue;
+    const members=wpData.members;
+    const sf=fields.find(f=>f.type==='select');
+    let statsText=members.length+'名';
+    if(sf){
+      const c={}; (sf.options||[]).forEach(o=>c[o]=0); let blank=0;
+      for(const m of members){const v=m.values[sf.id]||''; if(v&&c[v]!==undefined)c[v]++;else blank++;}
+      statsText=members.length+'名（'+(sf.options||[]).map(o=>o+c[o]).join(' ')+' 未回答'+blank+'）';
+    }
+    let html='<div class="sec-hdr"><span>'+esc(wp)+'</span><div style="display:flex;align-items:center;gap:8px;"><span style="font-weight:400;font-size:0.75rem;">'+statsText+'</span><div class="sec-hdr-btns"><button onclick="renameWp(\''+esc(wp)+'\')">名称変更</button><button onclick="deleteWp(\''+esc(wp)+'\')">削除</button></div></div></div>';
+    html+='<div class="sec-memo"><textarea data-wp-memo="'+esc(wp)+'" placeholder="職場メモ" rows="1">'+esc(wpData.memo)+'</textarea></div>';
+    html+='<table><thead><tr><th>氏名</th>';
+    for(const f of fields) html+='<th'+(f.type==='check'?' class="c"':'')+'>'+esc(f.label)+'</th>';
+    html+='<th>備考</th><th style="width:50px;"></th></tr></thead><tbody>';
+    members.forEach((m,i)=>{
+      html+='<tr><td>'+esc(m.name)+'</td>';
+      for(const f of fields){
+        const val=m.values[f.id];
+        if(f.type==='check') html+='<td class="c"><input type="checkbox" '+(val?'checked':'')+' data-w="'+esc(wp)+'" data-i="'+i+'" data-fid="'+f.id+'" data-ft="check"></td>';
+        else if(f.type==='select'){
+          const sc=f.options?(f.options.indexOf(val)===0?'y':f.options.indexOf(val)===1?'n':f.options.indexOf(val)===2?'p':''):'';
+          html+='<td><select class="'+sc+'" data-w="'+esc(wp)+'" data-i="'+i+'" data-fid="'+f.id+'" data-ft="select"><option value="">--</option>';
+          for(const o of(f.options||[])) html+='<option value="'+esc(o)+'" '+(val===o?'selected':'')+'>'+esc(o)+'</option>';
+          html+='</select></td>';
+        } else html+='<td><textarea class="note-area" data-w="'+esc(wp)+'" data-i="'+i+'" data-fid="'+f.id+'" data-ft="text">'+esc(val||'')+'</textarea></td>';
+      }
+      html+='<td><textarea class="note-area" data-w="'+esc(wp)+'" data-i="'+i+'" data-fid="_note" data-ft="note">'+esc(m.note)+'</textarea></td>';
+      html+='<td class="row-actions"><button title="異動" onclick="openMove(\''+esc(wp)+'\','+i+')">↗</button><button title="削除" onclick="deleteMember(\''+esc(wp)+'\','+i+')">✕</button></td></tr>';
+    });
+    html+='</tbody></table>';
+    html+='<div class="add-member"><input type="text" placeholder="名前を入力して追加" data-add-wp="'+esc(wp)+'" onkeydown="if(event.key===\'Enter\')addMember(\''+esc(wp)+'\',this)"><button onclick="addMember(\''+esc(wp)+'\',this.previousElementSibling)">追加</button></div>';
+    container.insertAdjacentHTML('beforeend',html);
+  }
+  container.querySelectorAll('textarea').forEach(autoResize);
+}
+
+function addMember(wp,input){
+  const name=input.value.trim(); if(!name)return;
+  ev().workplaces[wp].members.push({name,values:newMemberValues(ev().fields),note:''});
+  input.value=''; scheduleSave(); writeLog(currentEvent+' - '+wp+' - 追加: '+name); renderAll();
+}
+function deleteMember(wp,i){
+  const m=ev().workplaces[wp].members[i];
+  if(!confirm(m.name+' を削除しますか？'))return;
+  ev().workplaces[wp].members.splice(i,1); scheduleSave();
+  writeLog(currentEvent+' - '+wp+' - 削除: '+m.name); renderAll();
+}
+
+let moveFrom='', moveIdx=0;
+function openMove(wp,i){
+  moveFrom=wp; moveIdx=i;
+  const m=ev().workplaces[wp].members[i];
+  document.getElementById('moveName').textContent=m.name+'（'+wp+'）を異動';
+  const sel=document.getElementById('moveDest'); sel.innerHTML='';
+  for(const w of Object.keys(ev().workplaces)){
+    if(w===wp)continue; sel.innerHTML+='<option value="'+esc(w)+'">'+esc(w)+'</option>';
+  }
+  document.getElementById('moveModal').classList.add('show');
+}
+function closeMoveModal(){document.getElementById('moveModal').classList.remove('show');}
+function execMove(){
+  const dest=document.getElementById('moveDest').value; if(!dest)return;
+  const m=ev().workplaces[moveFrom].members.splice(moveIdx,1)[0];
+  ev().workplaces[dest].members.push(m); closeMoveModal(); scheduleSave();
+  writeLog(currentEvent+' - 異動: '+m.name+' '+moveFrom+'→'+dest); renderAll();
+}
+
+function openWpAdd(){document.getElementById('wpAddModal').classList.add('show');document.getElementById('wpAddName').value='';document.getElementById('wpAddName').focus();}
+function closeWpAdd(){document.getElementById('wpAddModal').classList.remove('show');}
+function execWpAdd(){
+  const name=document.getElementById('wpAddName').value.trim();
+  if(!name){alert('職場名を入力してください');return;}
+  if(ev().workplaces[name]){alert('同名の職場があります');return;}
+  ev().workplaces[name]={memo:'',members:[]}; closeWpAdd(); scheduleSave();
+  writeLog(currentEvent+' - 職場追加: '+name); renderAll();
+}
+function renameWp(wp){
+  const name=prompt('新しい職場名',wp);
+  if(!name||!name.trim()||name.trim()===wp)return;
+  if(ev().workplaces[name.trim()]){alert('同名の職場があります');return;}
+  const data=ev().workplaces[wp]; delete ev().workplaces[wp];
+  ev().workplaces[name.trim()]=data; scheduleSave();
+  writeLog(currentEvent+' - 職場名変更: '+wp+'→'+name.trim()); renderAll();
+}
+function deleteWp(wp){
+  const count=ev().workplaces[wp].members.length;
+  if(!confirm(wp+'（'+count+'名）を削除しますか？'))return;
+  delete ev().workplaces[wp]; scheduleSave();
+  writeLog(currentEvent+' - 職場削除: '+wp); renderAll();
+}
+
+// ---- 集約テキスト ----
+function renderTextMode(variant){
+  const container=document.getElementById('main');
+  document.getElementById('fieldConfig').style.display='none';
+  document.getElementById('wpSelector').style.display='none';
+  const fields=ev().fields, sf=fields.find(f=>f.type==='select'), cf=fields.find(f=>f.type==='check');
+  const yesOnly=variant==='yes';
+  const firstOpt=sf&&sf.options&&sf.options[0]?sf.options[0]:null;
+  let text='';
+  text+=yesOnly?'【'+currentEvent+'】'+(firstOpt||'参加')+'者一覧\n\n':'【'+currentEvent+'】集約状況\n\n';
+  const all=allMembers();
+  if(sf){
+    const c={}; (sf.options||[]).forEach(o=>c[o]=0); let blank=0;
+    for(const m of all){const v=m.values[sf.id]||''; if(v&&c[v]!==undefined)c[v]++;else blank++;}
+    if(yesOnly) text+='全体 '+all.length+'名中 '+firstOpt+' '+(c[firstOpt]||0)+'名\n';
+    else text+='全体 '+all.length+'名：'+(sf.options||[]).map(o=>o+' '+c[o]+'名').join('／')+'／未回答 '+blank+'名\n';
+    text+='─'.repeat(20)+'\n\n';
+  }
+  for(const[wp,wpData]of Object.entries(ev().workplaces)){
+    if(!isWpActive(wp)) continue;
+    const members=wpData.members;
+    if(yesOnly){
+      const matched=sf?members.filter(m=>m.values[sf.id]===firstOpt):[];
+      text+='■ '+wp+'（'+matched.length+'名）\n';
+      if(wpData.memo) text+='  メモ: '+wpData.memo+'\n';
+      if(matched.length>0) text+=matched.map(m=>{let s=m.name;if(m.note)s+='（'+m.note+'）';return s;}).join('、')+'\n';
+      else text+='（なし）\n';
+    } else {
+      text+='■ '+wp+'（'+members.length+'名）\n';
+      if(wpData.memo) text+='  メモ: '+wpData.memo+'\n';
+      if(sf){
+        for(const opt of(sf.options||[])){
+          const matched=members.filter(m=>m.values[sf.id]===opt);
+          if(matched.length>0) text+='['+opt+'] '+matched.map(m=>{let s=m.name;if(m.note)s+='（'+m.note+'）';return s;}).join('、')+'\n';
+        }
+        const blank=members.filter(m=>!m.values[sf.id]);
+        if(blank.length>0){
+          if(cf){
+            const contacted=blank.filter(m=>m.values[cf.id]);
+            const uncontacted=blank.filter(m=>!m.values[cf.id]);
+            if(contacted.length>0) text+='['+cf.label+'済・未回答] '+contacted.map(m=>m.name).join('、')+'\n';
+            if(uncontacted.length>0) text+='[未'+cf.label+'] '+uncontacted.map(m=>m.name).join('、')+'\n';
+          } else text+='[未回答] '+blank.map(m=>m.name).join('、')+'\n';
+        }
+      } else text+=members.map(m=>m.name).join('、')+'\n';
+    }
+    text+='\n';
+  }
+  container.innerHTML='<div class="text-output" id="textOutput">'+esc(text)+'</div>';
+}
+
+function copyTextOutput(){
+  const el=document.getElementById('textOutput'); if(!el)return;
+  navigator.clipboard.writeText(el.textContent).then(()=>{
+    const btn=document.querySelector('.toolbar button.green');
+    if(btn){btn.textContent='コピーしました！';setTimeout(()=>{btn.textContent='テキストをコピー';},1500);}
+  });
+}
+
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
+// ============ イベントハンドラ ============
+document.getElementById('main').addEventListener('change',e=>{
+  const d=e.target.dataset; if(!d.w||!d.fid)return;
+  const m=ev().workplaces[d.w].members[+d.i];
+  if(d.ft==='check') m.values[d.fid]=e.target.checked;
+  else if(d.ft==='select') m.values[d.fid]=e.target.value;
+  scheduleSave(); writeLog(currentEvent+' - '+d.w+' - '+m.name+' - 値変更'); renderAll();
+});
+document.getElementById('main').addEventListener('input',e=>{
+  const d=e.target.dataset;
+  if(d.wpMemo){ev().workplaces[d.wpMemo].memo=e.target.value;autoResize(e.target);scheduleSave();return;}
+  if(!d.w||!d.fid)return;
+  const m=ev().workplaces[d.w].members[+d.i];
+  if(d.ft==='note') m.note=e.target.value;
+  else if(d.ft==='text') m.values[d.fid]=e.target.value;
+  autoResize(e.target); scheduleSave();
+});
+
+// ============ インポート ============
+function setImpTab(tab){
+  impTab=tab;
+  document.getElementById('impTabList').style.background=tab==='list'?'#2563eb':'#fff';
+  document.getElementById('impTabList').style.color=tab==='list'?'#fff':'#334155';
+  document.getElementById('impTabData').style.background=tab==='data'?'#2563eb':'#fff';
+  document.getElementById('impTabData').style.color=tab==='data'?'#fff':'#334155';
+  document.getElementById('impListArea').style.display=tab==='list'?'':'none';
+  document.getElementById('impDataArea').style.display=tab==='data'?'':'none';
+}
+function openImport(){document.getElementById('importModal').classList.add('show');setImpTab('list');}
+function closeImport(){document.getElementById('importModal').classList.remove('show');}
+function doImport(){ if(impTab==='list') doImportList(); else doImportData(); }
+
+function doImportList(){
+  const raw=document.getElementById('csvInput').value.trim(); if(!raw)return;
+  const fields=ev().fields, workplaces={};
+  for(const line of raw.split('\n')){
+    const cols=line.includes('\t')?line.split('\t'):line.split(',');
+    if(cols.length<2)continue;
+    const wp=cols[0].trim(), name=cols[1].trim();
+    if(!wp||!name)continue;
+    if(!workplaces[wp]) workplaces[wp]={memo:'',members:[]};
+    workplaces[wp].members.push({name,values:newMemberValues(fields),note:''});
+  }
+  if(!Object.keys(workplaces).length){alert('読み込めるデータがありませんでした');return;}
+  ev().workplaces=workplaces;
+  closeImport();document.getElementById('csvInput').value='';
+  scheduleSave(); writeLog(currentEvent+' - 名簿インポート'); renderAll();
+}
+
+function doImportData(){
+  const raw=document.getElementById('dataInput').value.trim(); if(!raw)return;
+  const lines=raw.split('\n');
+  if(lines.length<2){alert('ヘッダー行とデータ行が必要です');return;}
+  const hdr=lines[0].split('@').map(s=>s.trim());
+  if(hdr.length<3){alert('ヘッダー形式が不正です');return;}
+  const fieldLabels=hdr.slice(2,hdr.length-1);
+  const hasNote=hdr[hdr.length-1]==='備考';
+  const actualFieldLabels=hasNote?fieldLabels:hdr.slice(2);
+  const fields=actualFieldLabels.map((label,i)=>{
+    const existing=ev().fields.find(f=>f.label===label);
+    if(existing) return JSON.parse(JSON.stringify(existing));
+    return {id:'fi'+(i+100),label,type:'text'};
+  });
+  for(let fi=0;fi<fields.length;fi++){
+    if(fields[fi].type!=='text')continue;
+    const vals=new Set();
+    for(let li=1;li<lines.length;li++){const cols=lines[li].split('@');const v=(cols[fi+2]||'').trim();if(v&&v!=='済') vals.add(v);}
+    const allCheck=lines.slice(1).every(l=>{const c=l.split('@');const v=(c[fi+2]||'').trim();return v===''||v==='済';});
+    if(allCheck){fields[fi].type='check';continue;}
+    if(vals.size>0&&vals.size<=6){fields[fi].type='select';fields[fi].options=[...vals];}
+  }
+  const workplaces={};
+  for(let li=1;li<lines.length;li++){
+    const cols=lines[li].split('@').map(s=>s.trim());
+    if(cols.length<3)continue;
+    const wp=cols[0], name=cols[1]; if(!wp||!name)continue;
+    if(!workplaces[wp]) workplaces[wp]={memo:'',members:[]};
+    const values={};
+    for(let fi=0;fi<fields.length;fi++){const f=fields[fi],raw=cols[fi+2]||'';if(f.type==='check')values[f.id]=raw==='済';else values[f.id]=raw;}
+    const note=hasNote?(cols[2+fields.length]||''):'';
+    workplaces[wp].members.push({name,values,note});
+  }
+  if(!Object.keys(workplaces).length){alert('読み込めるデータがありませんでした');return;}
+  ev().fields=fields; ev().workplaces=workplaces;
+  closeImport();document.getElementById('dataInput').value='';
+  scheduleSave(); writeLog(currentEvent+' - データインポート'); renderAll();
+}
+
+// ============ エクスポート ============
+function exportCSV(){
+  const fields=ev().fields;
+  let csv='行事,職場名,職場メモ,氏名,'+fields.map(f=>f.label).join(',')+',備考\n';
+  for(const[wp,wpData]of Object.entries(ev().workplaces)){
+    const wpMemo=wpData.memo.replace(/"/g,'""');
+    for(const m of wpData.members){
+      let row='"'+currentEvent+'","'+wp+'","'+wpMemo+'","'+m.name+'"';
+      for(const f of fields){const v=m.values[f.id];row+=f.type==='check'?','+(v?'済':''):',"'+String(v||'').replace(/"/g,'""')+'"';}
+      row+=',"'+m.note.replace(/"/g,'""')+'"'; csv+=row+'\n';
+    }
+  }
+  dl(csv, currentEvent+'_集約表.csv', 'text/csv');
+}
+function exportData(){
+  const fields=ev().fields;
+  let text='職場名@氏名@'+fields.map(f=>f.label).join('@')+'@備考\n';
+  for(const[wp,wpData]of Object.entries(ev().workplaces)){
+    for(const m of wpData.members){
+      let row=wp+'@'+m.name;
+      for(const f of fields){const v=m.values[f.id];row+='@'+(f.type==='check'?(v?'済':''):String(v||''));}
+      row+='@'+(m.note||''); text+=row+'\n';
+    }
+  }
+  dl(text, currentEvent+'_データ.txt', 'text/plain');
+}
+function dl(content,filename,type){
+  const blob=new Blob(['\uFEFF'+content],{type:type+';charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+}
+
+// ============ 対象職場セレクター ============
+function renderWpSelector(){
+  const el=document.getElementById('wpSelector'), list=document.getElementById('wpCheckList');
+  if(!ev()||currentMode!=='edit'){ el.style.display='none'; return; }
+  el.style.display='';
+  const allWps=Object.keys(ev().workplaces), active=ev().activeWps, isAll=!active;
+  let html='<label style="display:inline-flex;align-items:center;gap:4px;margin-right:12px;font-size:0.8rem;cursor:pointer;"><input type="checkbox" id="wpAll" '+(isAll?'checked':'')+' style="accent-color:#2563eb;"> 全職場</label><br>';
+  allWps.forEach(wp=>{
+    const checked=isAll||active.includes(wp);
+    html+='<label style="display:inline-flex;align-items:center;gap:4px;margin-right:10px;margin-top:4px;font-size:0.8rem;cursor:pointer;"><input type="checkbox" data-wp-sel="'+esc(wp)+'" '+(checked?'checked':'')+' '+(isAll?'disabled':'')+' style="accent-color:#2563eb;"> '+esc(wp)+'</label>';
+  });
+  list.innerHTML=html;
+}
+document.getElementById('wpCheckList').addEventListener('change',e=>{
+  if(e.target.id==='wpAll'){
+    ev().activeWps=e.target.checked?null:Object.keys(ev().workplaces).slice();
+    renderWpSelector(); renderMain(); renderSummary(); return;
+  }
+  const wp=e.target.dataset.wpSel; if(!wp)return;
+  let active=ev().activeWps; if(!active) return;
+  if(e.target.checked){ if(!active.includes(wp)) active.push(wp); }
+  else { ev().activeWps=active.filter(w=>w!==wp); }
+  if(ev().activeWps.length===0) ev().activeWps=null;
+  renderMain(); renderSummary();
+});
+
+// ============ 全体描画 ============
+function renderAll(){renderToolbar();renderSummary();renderFieldConfig();renderWpSelector();renderMain();}
+</script>
+</body>
+</html>
